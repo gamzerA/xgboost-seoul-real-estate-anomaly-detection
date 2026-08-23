@@ -1,0 +1,23 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.env
+.env.*
+
+# Keep private presentation scripts and speaker notes out of the public repository.
+docs/*notes*
+docs/*script*
+docs/*스크립트*
+
+# Public transaction data is downloaded separately.
+data/raw/*
+!data/raw/.gitkeep
+
+# Generated row-level outputs are intentionally not versioned.
+results/generated/
+*.model
+*.joblib
+*.pkl

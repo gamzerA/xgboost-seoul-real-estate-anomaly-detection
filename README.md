@@ -62,7 +62,10 @@
 │   ├── figures/
 │   └── reference/
 ├── src/
-│   └── train_xgboost.py
+│   ├── train_xgboost.py          # 학회 발표 당시 베이스라인
+│   └── train_robust_pipeline.py  # 모델 선정·강건성 검증 발전 버전
+├── tests/
+│   └── test_robust_pipeline.py
 ├── requirements.txt
 └── README.md
 ```
@@ -88,13 +91,50 @@ python src/train_xgboost.py \
 
 생성되는 거래별 예측 결과와 이상 거래 후보 목록은 `results/generated/`에 저장되며 Git에는 포함되지 않습니다.
 
+## 발전 버전: 모델 선정과 강건성 검증
+
+학회 발표 당시 베이스라인을 보존하면서, 후속 연구용 코드를 별도 파일
+[`src/train_robust_pipeline.py`](src/train_robust_pipeline.py)로 추가했습니다.
+
+- 후보 모델: 중앙값 베이스라인, Ridge, Random Forest, Histogram Gradient Boosting, XGBoost
+- 모델 선정: 최종 연도를 제외한 데이터에서 expanding-window 시간 검증
+- 최종 평가: 가장 최근 연도를 한 번만 사용하는 out-of-time holdout
+- 누수 방지: 교차적합 Target Encoding을 각 학습 폴드 내부에서만 수행하고 미관측 범주를 별도 처리
+- 강건성 분석: 95% bootstrap 신뢰구간, 자치구·면적·가격 구간별 성능, 여러 seed의 지표 및 후보 일치도
+- 후보 산출: 학습 행 재예측이 아닌 out-of-time 잔차와 연도별 강건 로그잔차 점수 사용
+- 재현성: 실행 환경, seed, 원본 CSV SHA-256 기록
+
+전체 데이터로 실행합니다.
+
+```bash
+python src/train_robust_pipeline.py \
+  --data-dir data/raw \
+  --output-dir results/advanced/generated \
+  --top-n 922
+```
+
+개발 중 빠른 구조 점검에는 연도별 표본을 사용할 수 있습니다. 이 옵션으로
+생성한 수치는 최종 연구 결과로 보고하면 안 됩니다.
+
+```bash
+python src/train_robust_pipeline.py \
+  --data-dir data/raw \
+  --output-dir results/advanced/smoke \
+  --sample-per-year 1000 \
+  --bootstrap-iterations 30
+```
+
+자세한 설계와 산출물 설명은
+[`docs/advanced_methodology.md`](docs/advanced_methodology.md)를 참고하세요.
+
 ## 한계와 후속 연구
 
 - 교통 접근성, 학군, 금리, 개발 호재, 리모델링 여부 등 외부 변수를 포함하지 않았습니다.
-- Label Encoding은 범주 사이에 임의의 순서 관계를 부여할 수 있습니다.
-- 절대잔차가 큰 거래를 선별하는 휴리스틱이므로 이상 원인을 직접 설명하지 못합니다.
-- 현재 전체 데이터의 후보 점수는 단일 학습 모델의 예측을 사용합니다. 후속 연구에서는 Out-of-Fold 예측을 이용해 후보 점수의 낙관 편향을 줄일 필요가 있습니다.
-- 자치구별 모델, 시간 순서 기반 검증, 외부 변수 통합과 이상 유형별 평가가 필요합니다.
+- 발표 당시 베이스라인의 Label Encoding은 범주 사이에 임의의 순서 관계를 부여할 수 있습니다. 발전 버전에서는 폴드 내부 Target Encoding으로 보완했습니다.
+- 발전 버전의 강건 로그잔차 점수도 이상 원인을 직접 설명하지는 못합니다.
+- 발표 당시 베이스라인의 전체 데이터 후보 점수는 단일 학습 모델의 예측을 사용했습니다. 발전 버전에서는 out-of-time 예측으로 이 문제를 보완했습니다.
+- 시간 기반 검증과 구간별 평가는 발전 버전에 구현했지만, 자치구별 독립 모델 비교는 아직 필요합니다.
+- 실제 이상거래 라벨이 없어 탐지 Precision·Recall을 평가할 수 없습니다. 외부 변수 통합과 전문가 검토 자료를 이용한 검증이 후속 과제입니다.
 
 ## 발표자료
 

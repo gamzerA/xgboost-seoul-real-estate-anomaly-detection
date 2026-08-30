@@ -18,6 +18,8 @@ data/raw/*
 
 # Generated row-level outputs are intentionally not versioned.
 results/generated/
+results/advanced/generated/
+results/advanced/smoke/
 *.model
 *.joblib
 *.pkl

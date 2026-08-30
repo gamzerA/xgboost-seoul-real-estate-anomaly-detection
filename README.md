@@ -1,26 +1,40 @@
-# XGBoost 기반 서울시 부동산 가격 예측 및 이상 거래 탐지
+# XGBoost-Based Seoul Real Estate Price Prediction and Anomalous Transaction Screening
 
-서울시 아파트 실거래가를 이용해 적정 거래가격을 예측하고, 실제가격과 예측가격의 잔차가 큰 거래를 추가 검토 후보로 선별한 프로젝트입니다. 제59회 한국정보통신학회 춘계종합학술대회에서 2026년 5월 22일 구두 발표했습니다.
+This project uses Seoul apartment transaction records to estimate expected sale
+prices and identify transactions with unusually large gaps between actual and
+predicted prices for further review. The original study was presented orally at
+the 59th Spring Conference of the Korea Institute of Information and
+Communication Engineering on May 22, 2026.
 
-> 이 프로젝트의 “이상 거래 후보”는 가격 패턴에서 크게 벗어난 관측치를 뜻합니다. 불법·부정 거래를 확정하거나 특정 거래 당사자를 평가하는 결과가 아닙니다.
+> An "anomalous transaction candidate" in this project is an observation that
+> deviates substantially from the learned price pattern. It is not a
+> determination of fraud or illegality, nor an assessment of any party involved
+> in a transaction.
 
-![실제 거래가격과 예측가격 비교](results/figures/actual_vs_predicted.png)
+![Actual versus predicted transaction prices](results/figures/actual_vs_predicted.png)
 
-## 연구 질문
+## Research Question
 
-면적·지역·층수·건축년도·거래 시점 등 복합적인 가격 요인을 반영해 서울시 아파트의 적정 거래가격을 예측하고, 예측값과 실제값의 차이로 추가 검토가 필요한 거래를 선별할 수 있는가?
+Can Seoul apartment prices be estimated from multiple factors—including floor
+area, location, floor level, construction year, and transaction date—and can
+the gap between predicted and actual prices be used to prioritize transactions
+for additional review?
 
-## 데이터와 방법
+## Data and Baseline Method
 
-- 데이터: 국토교통부 서울시 아파트 실거래가 2022–2025년
-- 전처리 후 거래 수: 189,864건
-- 입력 변수: 전용면적, 층, 건축년도, 건물나이, 계약연도, 계약월, 자치구, 법정동, 단지명
-- 모델: `XGBRegressor`
-- 분할: Train 80% / Test 20%, `random_state=42`
-- 검증: Shuffle 5-Fold Cross Validation
-- 후보 선정: 절대잔차 기준 상위 922건
+- Data: Seoul apartment transaction records from the Ministry of Land,
+  Infrastructure and Transport, 2022–2025
+- Transactions after preprocessing: 189,864
+- Features: exclusive-use area, floor, construction year, building age,
+  contract year, contract month, district, statutory neighborhood
+  (`beopjeong-dong`), and
+  apartment complex
+- Model: `XGBRegressor`
+- Split: 80% train / 20% test, `random_state=42`
+- Validation: shuffled 5-fold cross-validation
+- Candidate selection: top 922 transactions by absolute residual
 
-### XGBoost 설정
+### Baseline XGBoost Configuration
 
 | Parameter | Value |
 |---|---:|
@@ -30,31 +44,37 @@
 | `subsample` | 0.8 |
 | `colsample_bytree` | 0.8 |
 
-## 저장된 기준 결과
+## Stored Baseline Results
 
-현재 보관된 결과 파일의 지표는 다음과 같습니다.
+The metrics preserved in the repository are:
 
 | Metric | Value |
 |---|---:|
 | Test R² | 0.9258 |
-| Test MAE | 14,742.59만원 |
-| Test RMSE | 24,945.73만원 |
-| 5-Fold CV mean R² | 0.9301 |
+| Test MAE | 14,742.59 (KRW 10,000 units) |
+| Test RMSE | 24,945.73 (KRW 10,000 units) |
+| Mean 5-fold CV R² | 0.9301 |
 
-학회 발표자료에는 당시 실행 결과인 5-Fold 평균 R² `0.9172`가 기록돼 있습니다. 저장소의 기준 CSV는 이후 실행 결과이므로 수치가 다릅니다. 데이터 파일 버전과 실행 환경을 함께 고정하는 것이 후속 재현 과제입니다.
+The conference slides report a mean 5-fold CV R² of `0.9172` from the original
+run. The reference CSV in this repository comes from a later run and therefore
+contains a different value. Locking the exact data version and execution
+environment remains necessary for complete reproduction of the conference
+result.
 
-![변수 중요도](results/figures/feature_importance.png)
+![Feature importance](results/figures/feature_importance.png)
 
-전용면적과 자치구가 가장 높은 중요도를 보였고, 건축년도·법정동·건물나이가 뒤를 이었습니다.
+Exclusive-use area and district had the highest importance, followed by
+construction year, statutory neighborhood, and building age.
 
-## 프로젝트 구조
+## Repository Structure
 
 ```text
 .
 ├── data/
 │   ├── README.md
-│   └── raw/                       # 직접 내려받은 CSV 배치, Git 제외
+│   └── raw/                       # Downloaded CSV files; excluded from Git
 ├── docs/
+│   ├── advanced_methodology.md
 │   └── presentation.pptx
 ├── notebooks/
 │   └── xgboost_baseline.ipynb
@@ -62,17 +82,17 @@
 │   ├── figures/
 │   └── reference/
 ├── src/
-│   ├── train_xgboost.py          # 학회 발표 당시 베이스라인
-│   └── train_robust_pipeline.py  # 모델 선정·강건성 검증 발전 버전
+│   ├── train_xgboost.py          # Original conference baseline
+│   └── train_robust_pipeline.py  # Advanced model-selection pipeline
 ├── tests/
 │   └── test_robust_pipeline.py
 ├── requirements.txt
 └── README.md
 ```
 
-## 실행 방법
+## Installation
 
-Python 3.10 이상을 권장합니다.
+Python 3.10 or later is recommended.
 
 ```bash
 python -m venv .venv
@@ -80,7 +100,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-[데이터 안내](data/README.md)에 따라 CSV를 `data/raw/`에 배치한 뒤 실행합니다.
+Follow the [data instructions](data/README.md) and place the CSV files in
+`data/raw/` before running either pipeline.
+
+## Run the Conference Baseline
 
 ```bash
 python src/train_xgboost.py \
@@ -89,22 +112,30 @@ python src/train_xgboost.py \
   --top-n 922
 ```
 
-생성되는 거래별 예측 결과와 이상 거래 후보 목록은 `results/generated/`에 저장되며 Git에는 포함되지 않습니다.
+Row-level predictions and review candidates are written to
+`results/generated/` and are excluded from Git.
 
-## 발전 버전: 모델 선정과 강건성 검증
+## Advanced Pipeline: Model Selection and Robustness Validation
 
-학회 발표 당시 베이스라인을 보존하면서, 후속 연구용 코드를 별도 파일
-[`src/train_robust_pipeline.py`](src/train_robust_pipeline.py)로 추가했습니다.
+The conference baseline remains unchanged. The follow-up workflow is provided
+separately in [`src/train_robust_pipeline.py`](src/train_robust_pipeline.py).
 
-- 후보 모델: 중앙값 베이스라인, Ridge, Random Forest, Histogram Gradient Boosting, XGBoost
-- 모델 선정: 최종 연도를 제외한 데이터에서 expanding-window 시간 검증
-- 최종 평가: 가장 최근 연도를 한 번만 사용하는 out-of-time holdout
-- 누수 방지: 교차적합 Target Encoding을 각 학습 폴드 내부에서만 수행하고 미관측 범주를 별도 처리
-- 강건성 분석: 95% bootstrap 신뢰구간, 자치구·면적·가격 구간별 성능, 여러 seed의 지표 및 후보 일치도
-- 후보 산출: 학습 행 재예측이 아닌 out-of-time 잔차와 연도별 강건 로그잔차 점수 사용
-- 재현성: 실행 환경, seed, 원본 CSV SHA-256 기록
+- Candidate models: median baseline, Ridge, Random Forest, Histogram Gradient
+  Boosting, and XGBoost
+- Model selection: expanding-window temporal validation using only years before
+  the final holdout year
+- Final evaluation: a one-time out-of-time evaluation on the most recent year
+- Leakage prevention: cross-fitted Target Encoding inside each training fold,
+  with explicit handling of previously unseen categories
+- Robustness analysis: 95% bootstrap confidence intervals; performance by
+  district, area, and price segment; multi-seed metric sensitivity; and
+  candidate-set stability
+- Candidate scoring: out-of-time residuals and year-normalized robust log-price
+  residual scores instead of predictions on training rows
+- Reproducibility: random seeds, package versions, and SHA-256 hashes of input
+  CSV files recorded for every run
 
-전체 데이터로 실행합니다.
+Run the advanced pipeline on the complete dataset:
 
 ```bash
 python src/train_robust_pipeline.py \
@@ -113,8 +144,9 @@ python src/train_robust_pipeline.py \
   --top-n 922
 ```
 
-개발 중 빠른 구조 점검에는 연도별 표본을 사용할 수 있습니다. 이 옵션으로
-생성한 수치는 최종 연구 결과로 보고하면 안 됩니다.
+For a quick structural check during development, use a stratified sample from
+each year. Metrics produced with this option must not be reported as final
+research results.
 
 ```bash
 python src/train_robust_pipeline.py \
@@ -124,24 +156,33 @@ python src/train_robust_pipeline.py \
   --bootstrap-iterations 30
 ```
 
-자세한 설계와 산출물 설명은
-[`docs/advanced_methodology.md`](docs/advanced_methodology.md)를 참고하세요.
+See [`docs/advanced_methodology.md`](docs/advanced_methodology.md) for the full
+validation design and output descriptions.
 
-## 한계와 후속 연구
+## Limitations and Future Work
 
-- 교통 접근성, 학군, 금리, 개발 호재, 리모델링 여부 등 외부 변수를 포함하지 않았습니다.
-- 발표 당시 베이스라인의 Label Encoding은 범주 사이에 임의의 순서 관계를 부여할 수 있습니다. 발전 버전에서는 폴드 내부 Target Encoding으로 보완했습니다.
-- 발전 버전의 강건 로그잔차 점수도 이상 원인을 직접 설명하지는 못합니다.
-- 발표 당시 베이스라인의 전체 데이터 후보 점수는 단일 학습 모델의 예측을 사용했습니다. 발전 버전에서는 out-of-time 예측으로 이 문제를 보완했습니다.
-- 시간 기반 검증과 구간별 평가는 발전 버전에 구현했지만, 자치구별 독립 모델 비교는 아직 필요합니다.
-- 실제 이상거래 라벨이 없어 탐지 Precision·Recall을 평가할 수 없습니다. 외부 변수 통합과 전문가 검토 자료를 이용한 검증이 후속 과제입니다.
+- External variables such as transport accessibility, school districts,
+  interest rates, redevelopment plans, and remodeling status are not included.
+- Label Encoding in the conference baseline can impose an arbitrary order on
+  categories. The advanced pipeline addresses this with fold-internal Target
+  Encoding.
+- The robust log-residual score prioritizes unusual observations but does not
+  explain why a transaction is unusual.
+- The conference baseline scores the full dataset with a single fitted model.
+  The advanced pipeline addresses this optimism by using out-of-time
+  predictions.
+- Temporal and subgroup evaluation are implemented, but separate district-level
+  model comparisons remain future work.
+- No authoritative labels for fraudulent or illegal transactions are available,
+  so detection precision and recall cannot yet be estimated. External variables
+  and expert-reviewed samples are needed for further validation.
 
-## 발표자료
+## Presentation
 
-- [학회 발표 슬라이드](docs/presentation.pptx)
+- [Conference presentation slides](docs/presentation.pptx)
 
-## 출처
+## Sources
 
-- [국토교통부 실거래가 공개시스템](https://rt.molit.go.kr/)
+- [MOLIT Real Estate Transaction Price Disclosure System](https://rt.molit.go.kr/)
 - [scikit-learn documentation](https://scikit-learn.org/)
 - [XGBoost documentation](https://xgboost.readthedocs.io/)
